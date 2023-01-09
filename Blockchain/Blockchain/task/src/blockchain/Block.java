@@ -1,104 +1,109 @@
 package blockchain;
 
-import java.io.Serializable;
-import java.time.Duration;
-import java.time.Instant;
+import java.security.MessageDigest;
 import java.util.Date;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.IntStream;
 
 
-import static blockchain.util.StringUtils.applySha256;
+public class Block {
 
-public class Block implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private final String minerId;
     private final int id;
-    private final long timestamp;
-    private final String prevBlockHash;
-    private long magicNumber;
-    private String blockHash;
-    private int timeToGenerate;
+    private final long timeStamp;
+    private int magicNumber;
+    private String previousHash;
+    private String data;
 
-    private Block(String minerId, int id, String prevBlockHash) {
-        this.minerId = minerId;
-        this.id = id;
-        this.prevBlockHash = prevBlockHash;
-        this.timestamp = new Date().getTime();
+    private String hash;
+    private static int lastId;
+    private final long creationDuration;
+    private final long miner;
+    private final String prefixState;
+
+    private Message message = new Message();
+
+
+    public Block(int lengthOfPrefix, long miner) {
+        long startTime = System.nanoTime();
+        this.timeStamp = new Date().getTime();
+        this.hash = mineBlock(lengthOfPrefix);
+        this.id = ++lastId;
+        this.creationDuration = 1;
+        this.miner = miner;
+        this.data = message.getMessages(id - 1);
+        if (this.creationDuration > 60) {
+            prefixState = "N was decreased by 1";
+        } else if (this.creationDuration < 10) {
+            prefixState = String.format("N was increased to %d", lengthOfPrefix + 1);
+        } else {
+            prefixState = "N stays the same";
+        }
     }
 
-    public static Block getUnproved(String minerId, int id, String prevBlockHash) {
-        return new Block(minerId, id, prevBlockHash);
+    public String getHash() {
+        return hash;
     }
 
-    public int getId() {
-        return id;
+
+    public long getCreationDuration() {
+        return creationDuration;
     }
 
-    public String getPrevBlockHash() {
-        return prevBlockHash;
+    public void setPreviousHash(String previousHash) {
+        this.previousHash = previousHash;
     }
 
-    public String getBlockHash() {
-        return blockHash;
+    public String getData() {
+        return id + previousHash + timeStamp + magicNumber + data;
     }
 
-    public int getTimeToGenerate() {
-        return timeToGenerate;
-    }
 
     @Override
     public String toString() {
-        return String.format("Block: \n" +
-                        "Created by miner # %s \n" +
-                        "Id: %d \n" +
-                        "Timestamp: %d \n" +
-                        "Magic number: %d \n" +
-                        "Hash of the previous block: \n" +
-                        "%s \n" +
-                        "Hash of the block: \n" +
-                        "%s \n" +
-                        "Block was generating for %d seconds",
-                minerId,
-                id,
-                timestamp,
-                magicNumber,
-                prevBlockHash,
-                blockHash,
-                timeToGenerate);
+        return "Block:" + '\n' +
+                "Created by miner" + miner + '\n' +
+                "miner" + miner +" gets 100 VC"+ '\n' +
+                "Id: " + id + '\n' +
+                "Timestamp: " + timeStamp + '\n' +
+                "Magic number: " + magicNumber + '\n' +
+                "Hash of the previous block: " + '\n' +
+                previousHash + '\n' +
+                "Hash of the block: " + '\n' +
+                hash + '\n' +
+                "Block data: " +
+                this.data + '\n' +
+                "Block was generating for " + creationDuration + " seconds" + '\n' +
+                prefixState + '\n';
     }
 
-    public void prove(int zeroes) {
-        final var startTime = Instant.now();
-        findMagicNumber(zeroes);
-        timeToGenerate = Math.toIntExact(Duration.between(startTime, Instant.now()).toSeconds());
+    private String calculateBlockHash() {
+        return applySha256(this.getData());
     }
 
-    private void findMagicNumber(int zeroes) {
-        var hash = "";
-        do {
-            magicNumber = ThreadLocalRandom.current().nextLong();
-            hash = applySha256(stringify());
-        } while (!isProved(zeroes, hash));
-        blockHash = hash;
+    public static String applySha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            /* Applies sha256 to our input */
+            byte[] hash = digest.digest(input.getBytes("UTF-8"));
+            StringBuilder hexString = new StringBuilder();
+            for (byte elem : hash) {
+                String hex = Integer.toHexString(0xff & elem);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public boolean isProved(int zeroes) {
-        final var hash = applySha256(stringify());
-        if (blockHash.equals(hash)) return isProved(zeroes, hash);
-        return false;
+    public String mineBlock(int prefix) {
+        if (prefix == 0) return calculateBlockHash();
+        hash = "                                                      ";
+        String prefixString = new String(new char[prefix]).replace('\0', '0');
+        while (!hash.substring(0, prefix).equals(prefixString)) {
+            magicNumber++;
+            hash = calculateBlockHash();
+        }
+        return hash;
     }
 
-    private boolean isProved(int zeroes, String blockHash) {
-        return IntStream.range(0, zeroes).allMatch(i -> blockHash.charAt(i) == '0');
-    }
-
-    private String stringify() {
-        return "" +
-                minerId +
-                id +
-                timestamp +
-                magicNumber +
-                prevBlockHash;
-    }
 }
