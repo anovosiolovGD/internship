@@ -15,7 +15,7 @@ public class ProductsComponent {
 				"jdbc:mysql://localhost:3306/classicmodels?user=root&password=pluralsight&serverTimezone=UTC");
 		Statement statement = connection.createStatement();
 		ResultSet resultSet = 
-		statement.executeQuery("SELECT productName, productLine, productScale FROM products WHERE productName LIKE '2002_%'");
+		statement.executeQuery("SELECT * FROM products WHERE productName LIKE '2002_%'");
 		
 		while(resultSet.next()) {
 			String name = resultSet.getString("productName");

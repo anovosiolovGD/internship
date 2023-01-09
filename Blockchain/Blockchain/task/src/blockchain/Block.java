@@ -2,8 +2,6 @@ package blockchain;
 
 import java.security.MessageDigest;
 import java.util.Date;
-
-
 public class Block {
 
     private final int id;
@@ -19,20 +17,22 @@ public class Block {
     private final String prefixState;
 
     private Message message = new Message();
+    int i = 0;
 
 
-    public Block(int lengthOfPrefix, long miner) {
+    public Block(/*int lengthOfPrefix*/ long miner) {
+
         long startTime = System.nanoTime();
         this.timeStamp = new Date().getTime();
-        this.hash = mineBlock(lengthOfPrefix);
+        this.hash = mineBlock(/*lengthOfPrefix*/);
         this.id = ++lastId;
-        this.creationDuration = 1;
+        this.creationDuration = (System.nanoTime() - startTime) / 1000000000;
         this.miner = miner;
         this.data = message.getMessages(id - 1);
         if (this.creationDuration > 60) {
             prefixState = "N was decreased by 1";
         } else if (this.creationDuration < 10) {
-            prefixState = String.format("N was increased to %d", lengthOfPrefix + 1);
+            prefixState = String.format("N was increased to %d", i++);
         } else {
             prefixState = "N stays the same";
         }
@@ -95,15 +95,15 @@ public class Block {
         }
     }
 
-    public String mineBlock(int prefix) {
-        if (prefix == 0) return calculateBlockHash();
-        hash = "                                                      ";
-        String prefixString = new String(new char[prefix]).replace('\0', '0');
-        while (!hash.substring(0, prefix).equals(prefixString)) {
-            magicNumber++;
-            hash = calculateBlockHash();
-        }
-        return hash;
+    public String mineBlock(/*int prefix*/) {
+//        if (prefix == 1) return calculateBlockHash();
+//        hash = "                                                      ";
+//        String prefixString = new String(new char[prefix]).replace('\0', '0');
+//        while (!hash.substring(0, prefix).equals(prefixString)) {
+//            magicNumber++;
+//            hash = calculateBlockHash();
+//        }
+        return applySha256("");
     }
 
 }
